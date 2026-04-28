@@ -16,68 +16,29 @@ export default function History() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 模拟数据
-    const mockReports: Report[] = [
-      {
-        id: 1,
-        title: 'AI 领域每日简报',
-        date: '2026-04-26',
-        time: '08:00',
-        category: 'AI',
-        version: 'v1.2.3',
-        summary: '今日简报涵盖 GPT-5 发布预告、Claude 4 新功能、Midjourney V7 更新等重要资讯。'
-      },
-      {
-        id: 2,
-        title: 'AI 领域每日简报',
-        date: '2026-04-26',
-        time: '20:00',
-        category: 'AI',
-        version: 'v1.2.2',
-        summary: '晚间版简报包含 AI 编程工具最新动态、大模型开源进展、以及开发者社区热点讨论。'
-      },
-      {
-        id: 3,
-        title: 'AI 领域每日简报',
-        date: '2026-04-25',
-        time: '08:00',
-        category: 'AI',
-        version: 'v1.2.1',
-        summary: '今日聚焦 AI Agent 发展趋势、OpenAI 最新研究论文、以及多模态模型应用案例。'
-      },
-      {
-        id: 4,
-        title: 'AI 领域每日简报',
-        date: '2026-04-25',
-        time: '20:00',
-        category: 'AI',
-        version: 'v1.2.0',
-        summary: '晚间版简报涵盖 AI 安全治理讨论、监管政策动态、以及行业应用最新进展。'
-      },
-      {
-        id: 5,
-        title: 'AI 领域每日简报',
-        date: '2026-04-24',
-        time: '08:00',
-        category: 'AI',
-        version: 'v1.1.9',
-        summary: '今日简报包括 Google I/O 大会 AI 预告、Meta 开源模型更新、以及 AI 芯片市场竞争分析。'
-      },
-      {
-        id: 6,
-        title: 'AI 领域每日简报',
-        date: '2026-04-24',
-        time: '20:00',
-        category: 'AI',
-        version: 'v1.1.8',
-        summary: '晚间版简报聚焦 AI 教育应用、医疗 AI 突破、以及 AI 助手交互体验升级。'
-      }
-    ]
-    
-    setTimeout(() => {
-      setReports(mockReports)
-      setLoading(false)
-    }, 300)
+    // 调用后端API获取简报列表
+    fetch('/api/reports?page=1&size=50')
+      .then(res => res.json())
+      .then(data => {
+        if (data.code === 200 && data.data) {
+          // 转换后端数据为前端格式
+          const formattedReports: Report[] = data.data.records?.map((report: any) => ({
+            id: report.id,
+            title: report.title || 'AI 领域每日简报',
+            date: report.reportDate || report.date,
+            time: report.edition === 'morning' ? '08:00' : '20:00',
+            category: 'AI',
+            version: `v1.0.${report.id}`,
+            summary: report.summary || '点击查看详细简报内容'
+          })) || []
+          setReports(formattedReports)
+        }
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('获取简报列表失败:', err)
+        setLoading(false)
+      })
   }, [])
 
   const getCategoryColor = (category: string) => {
