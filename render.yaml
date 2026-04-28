@@ -6,7 +6,7 @@ services:
     name: ai-daily-backend
     runtime: docker
     rootDir: ./backend
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./backend/Dockerfile
     region: oregon
     plan: free
 
