@@ -11,9 +11,16 @@ import re
 import sys
 import time
 import feedparser
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
+
+# 北京时区 (UTC+8)
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+def now_beijing():
+    """获取当前北京时间"""
+    return datetime.now(BEIJING_TZ)
 
 # ─── 推送 Spring Boot 后端 ─────────────────────────────────────────
 
@@ -186,7 +193,7 @@ def extract_ai_news(max_feeds=5, max_items=50):
 
 def format_news_for_prompt(items):
     """把新闻格式化为给 Gemini 的文本"""
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = now_beijing().strftime("%Y-%m-%d")
     lines = [f"📅 日期：{today}\n", "=" * 40, "\n今日 AI 相关资讯（共抓取到 {} 条，选取最重要的 5 条）：\n".format(len(items))]
     for i, item in enumerate(items[:5], 1):
         lines.append(f"[{i}] 来源：{item['source']}")
@@ -351,7 +358,9 @@ def detect_edition():
     if manual in ("morning", "evening"):
         return manual
 
-    hour = datetime.now().hour
+    # 使用明确的北京时间
+    now = now_beijing()
+    hour = now.hour
     # 北京时间 0-12 点之间执行为早间版，12-24 点为晚间版
     if hour < 12:
         return "morning"
@@ -362,7 +371,7 @@ def detect_edition():
 # ─── 主流程 ─────────────────────────────────────────────────────
 
 def main():
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = now_beijing().strftime("%Y-%m-%d")
     edition = detect_edition()
     edition_name = "早间版" if edition == "morning" else "晚间版"
 
@@ -422,7 +431,7 @@ def main():
     summary_text = report[:100] + "..." if len(report) > 100 else report
     push_to_backend(edition, title_text, header + report, summary_text, run_id)
 
-    print(f"\n✅ 今日简报完成！({datetime.now().strftime('%H:%M:%S')})")
+    print(f"\n✅ 今日简报完成！({now_beijing().strftime('%H:%M:%S')})")
 
 
 if __name__ == "__main__":

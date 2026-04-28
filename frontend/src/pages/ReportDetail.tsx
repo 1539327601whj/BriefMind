@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import dayjs from 'dayjs'
+import dayjs from '../utils/dayjs'
 import './ReportDetail.css'
 
 interface Report {
@@ -32,6 +32,9 @@ export default function ReportDetail() {
   const editionLabel = report.edition === 'morning' ? '🌅 早间版' : '🌙 晚间版'
   const editionClass = report.edition === 'morning' ? 'tag tag-morning' : 'tag tag-evening'
 
+  // 格式化时间（使用北京时间）
+  const formatTime = (dateStr: string) => dayjs(dateStr).format('YYYY-MM-DD HH:mm')
+
   return (
     <div className="detail-page">
       <Link to="/" className="back-btn">← 返回列表</Link>
@@ -40,7 +43,7 @@ export default function ReportDetail() {
         <header className="article-header">
           <div className="meta">
             <span className={editionClass}>{editionLabel}</span>
-            <span className="time">{dayjs(report.createdAt).format('YYYY-MM-DD HH:mm')}</span>
+            <span className="time">{formatTime(report.createdAt)}</span>
           </div>
           <h1>{report.title}</h1>
         </header>
