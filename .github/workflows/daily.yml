@@ -30,6 +30,7 @@ jobs:
         run: pip install -r requirements.txt -q
       - name: 生成 AI 简报 & 推送
         env:
+          TZ: 'Asia/Shanghai'
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           WECHAT_WEBHOOK: ${{ secrets.WECHAT_WEBHOOK }}
           BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }}

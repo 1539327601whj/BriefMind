@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import dayjs from 'dayjs'
+import dayjs from '../utils/dayjs'
 import './History.css'
 
 interface Report {
