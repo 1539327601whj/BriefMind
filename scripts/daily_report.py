@@ -227,40 +227,63 @@ def format_news_for_prompt(items):
     return "\n".join(lines)
 
 
-# ─── DeepSeek API ─────────────────────────────────────────────────
+# ─── LLM API 调用（支持多模型降级策略）────────────────────────────────────
 
-# 模型列表，按优先级排列
-DEEPSEEK_MODELS = [
-    "deepseek-chat",              # 最新强模型，推荐
+# 模型配置列表，按优先级排列
+# 支持：DeepSeek、OpenAI、Azure OpenAI 等兼容 OpenAI 协议的模型
+LLM_MODELS = [
+    {
+        "name": "deepseek-chat",
+        "base_url": "https://api.deepseek.com/",
+        "api_key_env": "DEEPSEEK_API_KEY",
+        "description": "DeepSeek V3 - 主用模型"
+    },
+    # 可选：配置 GPT-3.5 作为降级备选（取消注释并配置 OPENAI_API_KEY 即可启用）
+    # {
+    #     "name": "gpt-3.5-turbo",
+    #     "base_url": "https://api.openai.com/v1",
+    #     "api_key_env": "OPENAI_API_KEY",
+    #     "description": "GPT-3.5 - 备用模型"
+    # },
 ]
 
 
-def call_llm_with_retry(prompt, api_key, max_retries=3):
+def call_llm_with_retry(prompt, max_retries=3):
     """
-    调用 DeepSeek API，带重试机制
+    调用 LLM API，支持多模型降级策略
+    
+    实现多级容错：
+    1. 主模型（DeepSeek）失败时自动重试
+    2. 主模型完全不可用后，自动降级到备用模型（如 GPT-3.5）
+    3. 所有模型均失败时抛出异常
     """
     from openai import OpenAI
 
-    client = OpenAI(
-        api_key=api_key,
-        base_url="https://api.deepseek.com/"
-    )
-
-    for model_index, model_name in enumerate(DEEPSEEK_MODELS):
-        retries = max_retries if model_index == 0 else max_retries - 1
+    for model_index, model_config in enumerate(LLM_MODELS):
+        model_name = model_config["name"]
+        base_url = model_config["base_url"]
+        api_key_env = model_config["api_key_env"]
+        description = model_config.get("description", model_name)
+        
+        # 检查 API Key 是否配置
+        api_key = os.environ.get(api_key_env, "")
+        if not api_key:
+            print(f"⚠️ 未配置 {api_key_env}，跳过 {description}")
+            continue
+        
+        # 初始化客户端
+        client = OpenAI(api_key=api_key, base_url=base_url)
+        
+        # 主模型重试次数更多，备用模型适当减少
+        retries = max_retries if model_index == 0 else max(1, max_retries - 1)
 
         for attempt in range(retries + 1):
             try:
-                print(f"🤖 正在调用 {model_name} (尝试 {attempt + 1}/{retries + 1})...")
+                print(f"🤖 正在调用 {description} (尝试 {attempt + 1}/{retries + 1})...")
 
                 response = client.chat.completions.create(
                     model=model_name,
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
+                    messages=[{"role": "user", "content": prompt}],
                     temperature=0.3,
                     max_tokens=2000
                 )
@@ -271,36 +294,38 @@ def call_llm_with_retry(prompt, api_key, max_retries=3):
                     content = re.sub(r"^```(?:markdown)?\n?", "", content)
                     content = re.sub(r"\n?```$", "", content)
 
-                print(f"✅ 成功使用模型: {model_name}")
+                print(f"✅ 成功使用模型: {description}")
                 return content
 
             except Exception as e:
                 error_str = str(e).lower()
 
-                # 判断是否是服务繁忙错误
-                is_busy = (
+                # 判断是否是服务繁忙或可重试错误
+                is_retryable = (
                     "503" in str(e) or
                     "rate limit" in error_str or
                     "unavailable" in error_str or
-                    "timeout" in error_str
+                    "timeout" in error_str or
+                    "connection" in error_str
                 )
 
-                if is_busy and attempt < retries:
+                if is_retryable and attempt < retries:
                     wait_time = (attempt + 1) * 3
-                    print(f"⚠️ {model_name} 服务繁忙，等待 {wait_time} 秒后重试...")
+                    print(f"⚠️ {description} 服务繁忙，等待 {wait_time} 秒后重试...")
                     time.sleep(wait_time)
                     continue
 
-                # 最后一个重试也失败
+                # 当前模型最终失败，尝试降级到下一个模型
                 if attempt >= retries:
-                    if model_index < len(DEEPSEEK_MODELS) - 1:
-                        print(f"❌ {model_name} 不可用，切换到备用模型...")
+                    if model_index < len(LLM_MODELS) - 1:
+                        next_model = LLM_MODELS[model_index + 1].get("description", "备用模型")
+                        print(f"❌ {description} 不可用，降级到 {next_model}...")
                         break
                     else:
                         print(f"❌ 所有模型均不可用: {e}")
                         raise
 
-    raise Exception("所有 DeepSeek 模型均不可用，请稍后再试")
+    raise Exception("所有 LLM 模型均不可用，请检查 API 配置或稍后重试")
 
 
 SYSTEM_PROMPT_MORNING = """你是一位资深的 AI 领域技术架构师与科技媒体主编。
@@ -406,11 +431,12 @@ def main():
     edition_suffix = "早间版" if edition == "morning" else "晚间版"
     report_file = f"AI日报_{today}（{edition_suffix}）.md"
 
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "")
     webhook_url = os.environ.get("WECHAT_WEBHOOK", "")
 
-    if not api_key:
-        print("❌ 缺少 DEEPSEEK_API_KEY 环境变量")
+    # 检查是否有任意一个模型的 API Key 配置
+    has_api_key = any(os.environ.get(m["api_key_env"]) for m in LLM_MODELS)
+    if not has_api_key:
+        print("❌ 缺少 API Key 环境变量，请配置 DEEPSEEK_API_KEY")
         sys.exit(1)
     if not webhook_url:
         print("❌ 缺少 WECHAT_WEBHOOK 环境变量")
@@ -427,12 +453,12 @@ def main():
 
     print(f"\n📊 共抓取到 {len(news_items)} 条 AI 相关资讯\n")
 
-    # Step 2: 用 Gemini 生成简报
+    # Step 2: 用 LLM 生成简报（支持多模型降级）
     news_text = format_news_for_prompt(news_items)
     prompt = build_prompt(news_text, edition)
 
     try:
-        report = call_llm_with_retry(prompt, api_key)
+        report = call_llm_with_retry(prompt)
     except Exception as e:
         print(f"❌ LLM API 调用失败: {e}")
         sys.exit(1)
