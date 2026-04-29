@@ -26,3 +26,9 @@ Thumbs.db
 # Test
 coverage/
 .vercel
+
+# WorkBuddy local data (contains sensitive info)
+.workbuddy/
+
+# Generated reports
+AI日报_*.md
