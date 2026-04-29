@@ -1,104 +1,241 @@
-# AI 每日简报 - Spring Boot 后端
+# 🤖 AI Daily Spider
 
-> 提供简报存储与查询 API，支持 GitHub Actions 推送简报 + Web 前端读取
-> 网页大概长这样，可以看一下 https://brief-mind-frontend.vercel.app/
+<div align="center">
 
-## 技术栈
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+![Actions](https://github.com/GoodHappy666/ai-daily-spider/workflows/Daily%20Report/badge.svg)
+![Last Commit](https://img.shields.io/github/last-commit/GoodHappy666/ai-daily-spider)
 
-- Spring Boot 3.2.0
-- MySQL 8.x / TiDB Serverless
-- MyBatis-Plus（简化 CRUD）
-- Lombok（简化代码）
-- Docker（Render 部署）
+*AI 每日简报爬虫 - 自动抓取 AI/科技热点，生成每日简报*
 
-## API 接口
+[**在线演示**](https://brief-mind-frontend.vercel.app/) · [**后端 API**](https://ai-daily-backend.onrender.com/) · [**前端源码**](https://github.com/GoodHappy666/ai-daily-frontend)
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/reports` | GitHub Actions 推送新简报 |
-| GET | `/api/reports` | 获取简报列表（分页） |
-| GET | `/api/reports/{id}` | 获取单条简报详情 |
-| GET | `/api/reports/latest` | 获取最新一条简报 |
+</div>
 
-## 本地开发
+---
 
-```bash
-# 1. 创建数据库（本地 MySQL）
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS ai_daily CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+## 📖 项目介绍
 
-# 2. 配置环境变量
-export DB_HOST=localhost
-export DB_PORT=3306
-export DB_NAME=ai_daily
-export DB_USER=root
-export DB_PASSWORD=your_password
+**AI Daily Spider** 是一个自动化的 AI 资讯聚合与简报生成系统。每天定时抓取多个主流 AI/科技媒体的最新资讯，通过 AI 智能分析提取关键信息，生成结构化的每日简报。
 
-# 3. 启动
-mvn spring-boot:run
+### ✨ 核心特性
+
+- 🔄 **多源聚合** - 同时抓取多个 AI/科技媒体，确保资讯全面
+- 🤖 **AI 驱动** - 利用大语言模型智能提取要点、生成摘要
+- ⏰ **定时任务** - 通过 GitHub Actions 实现每日自动运行
+- 📊 **结构化输出** - 生成易于阅读的简报格式
+- 🚀 **零成本部署** - 完全使用免费服务，无服务器费用
+
+---
+
+## 🛠️ 技术栈
+
+| 分类 | 技术 |
+|------|------|
+| **语言** | Python 3.10+ |
+| **爬虫** | requests, BeautifulSoup4 |
+| **AI 处理** | OpenAI GPT-4 / Claude |
+| **定时任务** | GitHub Actions |
+| **存储** | TiDB Serverless |
+| **API** | Spring Boot + MyBatis-Plus |
+
+---
+
+## 🏗️ 系统架构
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        GitHub Actions                            │
+│                    (每日定时触发爬虫任务)                          │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      AI Daily Spider                            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │  36氪    │  │  虎嗅    │  │  IT之家  │  │  更多...  │        │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘        │
+│       │             │             │             │               │
+│       └─────────────┴──────┬──────┴─────────────┘               │
+│                            ▼                                     │
+│                   ┌─────────────────┐                             │
+│                   │   AI 处理器     │                             │
+│                   │ (生成简报摘要)   │                             │
+│                   └────────┬────────┘                             │
+└────────────────────────────┼────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Spring Boot API                              │
+│              (存储简报数据，提供查询接口)                          │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   TiDB Serverless                               │
+│                      (免费数据库)                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   Vercel 前端                                    │
+│            https://brief-mind-frontend.vercel.app               │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Render 部署
+---
 
-### 方式一：GitHub 同步部署（推荐）
+## 🚀 快速开始
 
-1. 将代码推送到 GitHub
-2. 登录 [Render](https://render.com)
-3. New → PostgreSQL → 创建免费数据库（可选，用 TiDB 也行）
-4. New → Blueprint → 选择 GitHub 仓库
-5. 配置环境变量：
-   - `DB_HOST`: TiDB Host（gateway01.us-west-2.prod.aws.tidbcloud.com）
-   - `DB_PORT`: 4000
-   - `DB_NAME`: ai_daily
-   - `DB_USER`: 你的用户名
-   - `DB_PASSWORD`: 你的密码
-6. 部署完成，获取 URL（如：`https://ai-daily-backend.onrender.com`）
+### 1. 克隆项目
 
-### 方式二：手动部署
+```bash
+git clone https://github.com/GoodHappy666/ai-daily-spider.git
+cd ai-daily-spider
+```
 
-1. 构建 Docker 镜像
-2. 推送到 Docker Hub
-3. 在 Render 创建 Web Service
+### 2. 安装依赖
 
-### 环境变量
+```bash
+pip install -r requirements.txt
+```
 
-| 变量名 | 说明 | 示例 |
-|--------|------|------|
-| `DB_HOST` | MySQL/TiDB 主机 | gateway01.us-west-2.prod.aws.tidbcloud.com |
-| `DB_PORT` | 端口 | 4000 |
-| `DB_NAME` | 数据库名 | ai_daily |
-| `DB_USER` | 用户名 | 2mdpH9MkQ28H3P9.root |
-| `DB_PASSWORD` | 密码 | ****** |
+### 3. 配置环境变量
 
-## Render 免费版限制
+创建 `.env` 文件：
 
-- 冷启动延迟约 30 秒（睡醒后首次访问慢）
-- 每月 750 小时免费额度
-- 30 天无访问会自动休眠
+```bash
+# OpenAI API（用于生成简报摘要）
+OPENAI_API_KEY=sk-your-api-key
 
-## TiDB Serverless 配置
+# 后端 API 地址（推送简报用）
+API_BASE_URL=https://ai-daily-backend.onrender.com
+API_TOKEN=your-api-token
+```
+
+### 4. 本地运行
+
+```bash
+# 抓取并生成简报
+python main.py
+
+# 仅测试爬虫（不调用 AI，不推送）
+python main.py --dry-run
+```
+
+---
+
+## 📋 数据源
+
+当前已集成的资讯来源：
+
+| 媒体 | 网址 | 分类 |
+|------|------|------|
+| 36氪 | 36kr.com | 科技/创业 |
+| 虎嗅 | huxiu.com | 科技/商业 |
+| IT之家 | ithome.com | 科技/数码 |
+| 机器之心 | jiqizhixin.com | AI/机器学习 |
+| AI前线 | ai.google | AI/研究 |
+
+> 💡 如需添加新的数据源，参考 `sources/` 目录下的现有实现
+
+---
+
+## ⚙️ 配置说明
+
+### GitHub Actions 定时任务
+
+工作流文件位于 `.github/workflows/daily.yml`，默认每天 **北京时间 9:00** 自动运行：
 
 ```yaml
-# application.yml 配置示例
-spring:
-  datasource:
-    url: jdbc:mysql://gateway01.us-west-2.prod.aws.tidbcloud.com:4000/ai_daily?sslMode=VERIFY_IDENTITY&serverTimezone=UTC
-    username: 你的用户名
-    password: 你的密码
-    driver-class-name: com.mysql.cj.jdbc.Driver
+schedule:
+  - cron: '0 1 * * *'  # UTC 1:00 = 北京时间 9:00
 ```
 
-## 本地构建 Docker
+### 环境变量配置
+
+| 变量名 | 必填 | 说明 |
+|--------|------|------|
+| `OPENAI_API_KEY` | ✅ | OpenAI API Key |
+| `API_BASE_URL` | ✅ | 后端 API 地址 |
+| `API_TOKEN` | ✅ | API 访问令牌 |
+| `MAX_ARTICLES` | ❌ | 单次最大抓取文章数（默认 20） |
+
+---
+
+## 📁 项目结构
+
+```
+ai-daily-spider/
+├── .github/
+│   └── workflows/
+│       └── daily.yml          # GitHub Actions 工作流
+├── sources/                    # 爬虫模块
+│   ├── __init__.py
+│   ├── base.py                 # 基础爬虫类
+│   ├── kr36.py                # 36氪爬虫
+│   ├── huxiu.py               # 虎嗅爬虫
+│   └── ithome.py              # IT之家爬虫
+├── ai/                         # AI 处理模块
+│   ├── __init__.py
+│   └── summarizer.py          # 简报生成器
+├── api/                        # API 交互模块
+│   ├── __init__.py
+│   └── client.py              # 后端 API 客户端
+├── utils/
+│   ├── __init__.py
+│   └── config.py              # 配置管理
+├── main.py                     # 程序入口
+├── requirements.txt            # 依赖列表
+└── README.md
+```
+
+---
+
+## 🔧 常见问题
+
+### Q: 爬虫运行失败怎么办？
+
+1. 检查网络连接是否正常
+2. 确认环境变量配置正确
+3. 查看 GitHub Actions 日志定位问题
+
+### Q: 如何本地调试？
 
 ```bash
-# 构建镜像
-docker build -t ai-daily-backend .
+# 查看详细日志
+python main.py -v
 
-# 运行
-docker run -p 8080:8080 \
-  -e DB_HOST=localhost \
-  -e DB_PORT=3306 \
-  -e DB_NAME=ai_daily \
-  -e DB_USER=root \
-  -e DB_PASSWORD=your_password \
-  ai-daily-backend
+# 测试单个数据源
+python -m sources.kr36
 ```
+
+### Q: API 请求超时？
+
+Render 免费版有冷启动延迟，首次请求可能较慢，属于正常现象。
+
+---
+
+## 📜 许可证
+
+本项目基于 [MIT License](LICENSE) 开源，欢迎 Star 和 Fork！
+
+---
+
+## 🙏 致谢
+
+- [36氪](https://36kr.com/) - 优质科技资讯
+- [虎嗅](https://www.huxiu.com/) - 深度商业报道
+- [IT之家](https://www.ithome.com/) - 快速科技新闻
+- [TiDB](https://tidbcloud.com/) - 免费云数据库
+- [Render](https://render.com/) - 免费后端托管
+- [Vercel](https://vercel.com/) - 免费前端托管
+
+---
+
+<div align="center">
+
+⭐ 如果这个项目对你有帮助，欢迎点个 Star！
+
+</div>
