@@ -32,3 +32,4 @@ coverage/
 
 # Generated reports
 AI日报_*.md
+test_tidb.js
